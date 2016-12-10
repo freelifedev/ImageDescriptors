@@ -4,6 +4,49 @@ import numpy as np
 import mahotas
 import cv2
 
+
+def describe_shapes_simple(image, radius, degree):
+    # initialize the list of shape features
+    shapeFeatures = []
+
+    # conver the image to grayscale, blur it, and threshold it
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    # blurred = cv2.GaussianBlur(gray, (13,13), 0)
+    thresh = cv2.threshold(gray, 50, 225, cv2.THRESH_BINARY)[1]
+
+    # perform a series of dilations and erosions to close holes
+    # in the shapes
+    # thresh = cv2.dilate(thresh, None, iterations=4)
+    # thresh = cv2.erode(thresh, None, iterations=2)
+
+    # detect contours in the edge map
+    (cnts, _) = cv2.findContours(thresh.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+    # loop over the contours
+    for c in cnts:
+        # create an empty mask for the contour and draw it
+        mask = np.zeros(image.shape[:2], dtype="uint8")
+        cv2.drawContours(mask, [c], -1, 255, -1)
+
+        # extract the bounding box ROI from the mask
+        (x, y, w, h) = cv2.boundingRect(c)
+        roi = mask[y:y+h,  x:x+w]
+
+        # compute Zernike Moments for the ROI and updagte the list
+        # of shape features
+        features  = mahotas.features.zernike_moments(roi,
+                            radius, degree=degree)
+        shapeFeatures.append(features)
+
+    # return a tuple of the contours and shapes
+    return (cnts, shapeFeatures)
+
+# Quiz2
+image = cv2.imread("o180a")
+(cnts, shapeFeatures) = describe_shapes_simple(image, 200, 3)
+print "o180a feature vector is {}".format(shapeFeatures)
+
+
 def describe_shapes(image):
     # initialize the list of shape features
     shapeFeatures = []
